@@ -1,0 +1,219 @@
+﻿@page
+@model GradingPROProjectClient.Pages.Exam.ExamManagementDetailModel
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var accessToken = HttpContextAccessor?.HttpContext?.Items["AccessToken"] as string;
+    ViewData["Title"] = "Exam Management Detail";
+}
+<head>
+    <style>
+        .table-custom-width th {
+            width: 25%;
+        }
+    </style>
+</head>
+<a class="nav-link" asp-area="" asp-page="/Exam/ExamManagement"><i class="fas fa-arrow-left me-2"></i>Exam Management</a>
+<form method="post" enctype="multipart/form-data" id="formData">
+    <table class="table table-bordered table-custom-width">
+        <tbody>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.ExamId)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>@Html.DisplayFor(model => model.Exam.ExamId)</td>
+                }
+                else
+                {
+                    <td> <input asp-for="Exam.ExamId" disabled class="form-control" /></td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.ExamCode)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>@Html.DisplayFor(model => model.Exam.ExamCode)</td>
+                }
+                else
+                {
+                    <td>@Html.EditorFor(model => model.Exam.ExamCode, new { htmlAttributes = new { @class = "form-control" } })</td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.ExamName)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>@Html.DisplayFor(model => model.Exam.ExamName)</td>
+                }
+                else
+                {
+                    <td>@Html.EditorFor(model => model.Exam.ExamName, new { htmlAttributes = new { @class = "form-control" } })</td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.Status)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td> 
+                        @await Html.PartialAsync("_ExamStatus", new Tuple<int, DateTime?, DateTime?>(Model.Exam.Status, Model.Exam.StartTime, Model.Exam.EndTime))
+                    </td>
+                }
+                else
+                {
+                    <td>
+                        <select asp-for="Exam.Status" class="form-control">
+                            <option value="0">Inactive</option>
+                            <option value="1">Active</option>
+                            <option value="2">Finished</option>
+                        </select>
+                    </td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.StartTime)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>@Html.DisplayFor(model => model.Exam.StartTime)</td>
+                }
+                else
+                {
+                    <td>@Html.EditorFor(model => model.Exam.StartTime, new { htmlAttributes = new { @class = "form-control" } })</td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.EndTime)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>@Html.DisplayFor(model => model.Exam.EndTime)</td>
+                }
+                else
+                {
+                    <td>@Html.EditorFor(model => model.Exam.EndTime, new { htmlAttributes = new { @class = "form-control" } })</td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.TotalQuestions)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>@Html.DisplayFor(model => model.Exam.TotalQuestions)</td>
+                }
+                else
+                {
+                    <td>@Html.EditorFor(model => model.Exam.TotalQuestions, new { htmlAttributes = new { @class = "form-control" } })</td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.TotalScore)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>@Html.DisplayFor(model => model.Exam.TotalScore)</td>
+                }
+                else
+                {
+                    <td><input type="number" asp-for="Exam.TotalScore" class="form-control" /></td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.QuestionFolder)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td>
+                        <a href="void:javascript(0)" class="downloadMaterial" data-link="@Model.Exam.QuestionFolder">@Html.DisplayFor(model => model.Exam.QuestionFolder)</a>
+                    </td>
+                }
+                else
+                {
+                    <td> 
+                        @Html.EditorFor(model => model.Exam.QuestionFile, new { htmlAttributes = new { @class = "form-control" } })
+                        <span>Old File:  <a href="void:javascript(0)" class="downloadMaterial" data-link="@Model.Exam.QuestionFolder">@Html.DisplayFor(model => model.Exam.QuestionFolder)</a></span>
+                    </td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.TestCaseFolder)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td><a href="void:javascript(0)" class="downloadMaterial" data-link="@Model.Exam.TestCaseFolder">@Html.DisplayFor(model => model.Exam.TestCaseFolder)</a></td>
+                }
+                else
+                {
+                    <td>
+                       @Html.EditorFor(model => model.Exam.TestCaseFile, new { htmlAttributes = new { @class = "form-control" } })
+                       <span class="downloadMaterial" data-link="@Model.Exam.TestCaseFolder">Old File: <a href="void:javascript(0)" class="downloadMaterial" data-link="@Model.Exam.TestCaseFolder">@Html.DisplayFor(model => model.Exam.TestCaseFolder)</a>
+                    </td>
+                }
+            </tr>
+            <tr>
+                <th scope="row">@Html.DisplayNameFor(model => model.Exam.AnswerFolder)</th>
+                @if (Model.FormMode == "view")
+                {
+                    <td><a href="void:javascript(0)" class="downloadMaterial" data-link="@Model.Exam.AnswerFolder">@Html.DisplayFor(model => model.Exam.AnswerFolder)</a></td>
+                }
+                else
+                {
+                    <td>
+                        @Html.EditorFor(model => model.Exam.AnswerFile, new { htmlAttributes = new { @class = "form-control" } })
+                        <span class="downloadMaterial" data-link="@Model.Exam.AnswerFolder">Old File: <a href="void:javascript(0)" class="downloadMaterial" data-link="@Model.Exam.AnswerFolder">@Html.DisplayFor(model => model.Exam.AnswerFolder)</a>
+                    </td>
+                }
+            </tr>
+        </tbody>
+    </table>
+    <div class="row">
+        <div class="col-12">
+            <div class="btn-group float-end" role="group" aria-label="Basic example">
+                @if (Model.FormMode == "view")
+                {
+                    <a class="btn btn-primary" asp-page="/Exam/ExamManagementDetail" asp-route-examId="@Model.Exam.ExamId" asp-route-mode="edit"><i class="fas fa-edit me-2"></i>Edit</a>
+                    <a class="btn btn-danger" asp-page="/Exam/ExamManagementDelete" asp-route-id="@Model.Exam.ExamId"><i class="fas fa-trash me-2"></i>Delete</a>
+                }
+                else if (Model.FormMode == "edit")
+                {
+                    <a class="btn btn-success" onclick="submitForm('@Model.Exam.ExamId')"><i class="fas fa-edit me-2"></i>Update</a>
+                    <a class="btn btn-danger" asp-page="/Exam/ExamManagementDetail" asp-route-examId="@Model.Exam.ExamId" asp-route-mode="view"><i class="fas fa-times me-2"></i>Cancel</a>
+                }
+                else if (Model.FormMode == "add")
+                {
+                    <button class="btn btn-success" type="button" onclick="submitForm()"><i class="fas fa-save me-2"></i>Save</button>
+                }
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts{
+    <script>
+        async function submitForm(examId = null) {
+            let result = null;
+            if(!examId){ // add
+                result = await fetch('https://localhost:44333/api/Exam/CreateExam', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer @accessToken`
+                    },
+                    body: new FormData(document.getElementById("formData"))
+                });
+            }else{
+                result = await fetch('https://localhost:44333/api/Exam/UpdateExam?examId=' + examId, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer @accessToken`
+                    },
+                    body: new FormData(document.getElementById("formData"))
+                });
+            }
+            if(result){
+                const response = await result.json();
+                if(response.success){
+                    window.location.href = "/Exam/ExamManagement";
+                }
+                else{
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: response.message
+                    })
+                }
+            }
+        }
+    </script>
+}

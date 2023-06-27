@@ -1,0 +1,251 @@
+﻿@page
+@model GradingPROProjectClient.Pages.Exam.ExamDetailModel
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var accessToken = HttpContextAccessor?.HttpContext?.Items["AccessToken"] as string;
+    ViewData["Title"] = "Exam Detail";
+}
+<head>
+    <style>
+        .table-custom-width th {
+            width: 25%;
+        }
+    </style>
+</head>
+<a class="nav-link" asp-area="" asp-page="/Exam/Index"><i class="fas fa-arrow-left me-2"></i>Exam</a>
+@if (Model.ExamStudent != null)
+{
+    <h2 class="text-center u-text-4 mb-2">Exam Name: @Model.ExamStudent.ExamName</h2>
+    <h3 class="text-center u-text-3 mb-3">Exam Code: @Model.ExamStudent.ExamCode</h3>
+    @if (Model.ExamStudent.ExamStartTime != null && Model.ExamStudent.ExamEndTime != null)
+    {
+        <h5 class="text-center u-text-3 mb-3">Open: @Model.ExamStudent.ExamStartTime?.ToString("dd/MM/yyyy HH:mm:ss") - Close: @Model.ExamStudent.ExamEndTime?.ToString("dd/MM/yyyy HH:mm:ss")</h5>
+        @if (Model.ExamStudent?.ExamStatusPermission == 1)
+        {
+            <h5 class="text-center u-text-3 mb-3" id="timer-container">Time remaining: <span id="timer"></span></h5>
+        }
+    }
+    <p class="text-center u-text-3">
+        @await Html.PartialAsync("_ExamStatus", new Tuple<int, DateTime?, DateTime?>(Model.ExamStudent.ExamStatus, Model.ExamStudent.ExamStartTime, Model.ExamStudent.ExamEndTime))
+    </p>
+    <p class="text-center u-text-3">
+        @if (Model.ExamStudent.ExamStatusPermission == 1)
+        {
+            <a data-link="@Model.ExamStudent?.ExamQuestionFolder" class="downloadMaterial" href="javascript:void(0)">Download Exam Material</a>
+        }
+    </p>
+    <h3 class="mb-3">Submission status</h3>
+    <table class="table table-bordered table-custom-width">
+        <tbody>
+            <tr>
+                <th scope="row">Submission status</th>
+                <td class="u-text-3">
+                    @await Html.PartialAsync("_ExamStudentStatus", new Tuple<int, DateTime?, DateTime?>(Model.ExamStudent.Status, Model.ExamStudent.StartTime, Model.ExamStudent.SubmitedTime))
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">Grading status</th>
+                <td>
+                    @if (@Model.ExamStudent?.Score == null)
+                    {
+                        <span style="color: gray;">Not Graded</span>
+                    }
+                    else
+                    {
+                        <span style="color: green;">Graded</span>
+                    }
+                </td>
+            </tr>
+            @if (@Model.ExamStudent?.Score != null)
+            {
+                <tr>
+                    <th scope="row">Mark</th>
+                    <td>
+                        <span style="color: gray;">@Model.ExamStudent?.Score</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Mark Log</th>
+                    <td>
+                        <a data-value="@Model.ExamStudent?.MarkLog" id="viewMarkLog" href="javascript:void(0)">View Mark Log</a>
+                    </td>
+                </tr>
+            }
+            <tr>
+                <th scope="row">The exam start time</th>
+                <td>@Model.ExamStudent?.StartTime?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+            </tr>
+            <tr>
+                <th scope="row">The exam submission time</th>
+                <td>@Model.ExamStudent?.SubmitedTime?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+            </tr>
+            <tr>
+                <th scope="row">Total number of submissions</th>
+                <td>@Model.ExamStudent?.CountTimeSubmit</td>
+            </tr>
+            <tr>
+                <th scope="row">File submissions</th>
+                <td>
+                    @if (Model.ExamStudent?.ExamStatusPermission == 1)
+                    {
+                        <input type="file" class="form-control" id="studentFileExam" name="file" />
+                    }
+                    <a data-link="@Model.ExamStudent?.SubmitedFolder" class="downloadMaterial" href="javascript:void(0)">@Model.ExamStudent?.SubmitedFolder?.Split("\\").Last()</a>
+                </td>
+            </tr>
+            @if (Model.ExamStudent?.ExamStatusPermission == 1)
+            {
+                <tr>
+                    <th scope="row"></th>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                @if (Model.ExamStudent?.Status == 1)
+                                {
+                                    <a href="javascript:void(0)" class="btn btn-primary" id="submitExam">Submit</a>
+                                }
+                                else if (Model.ExamStudent?.Status == 2)
+                                {
+                                    <a href="javascript:void(0)" class="btn btn-primary" id="submitExam">Re-submit</a>
+                                }
+                            </div>
+                            <div class="spinner-border" role="status" id="loading" style="display: none;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+            if ($("#timer-container").length > 0) {
+                let isCount = true;
+                var startTime = new Date('@Model.ExamStudent?.ExamStartTime');
+                var endTime = new Date('@Model.ExamStudent?.ExamEndTime');
+                var currentTime = new Date();
+                if (currentTime < startTime) {
+                    $('#timer').text('Not open yet');
+                    $('#timer-container').hide();
+                    isCount = false;
+                }
+
+                if (currentTime > endTime) {
+                    $('#timer').text('Time out');
+                    $('#timer-container').hide();
+                    isCount = false;
+                }
+                if (isCount) {
+                    $('#timer-container').show();
+                    var timer = setInterval(function () {
+                        currentTime = new Date();
+
+                        var remainingTime = endTime - currentTime;
+
+                        if (remainingTime <= 0) {
+                            clearInterval(timer);
+                            document.getElementById('timer').innerHTML = 'Time out';
+                            Swal.fire("Error!", "Time out", "error").then((value) => {
+                                location.reload();
+                            });
+                            return;
+                        }
+
+                        var hours = Math.floor(remainingTime / (1000 * 60 * 60));
+                        var minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
+                        document.getElementById('timer').innerHTML = hours + ' hours ' + minutes + ' minutes ' + seconds + ' seconds';
+                    }, 1000);
+
+                }
+            }
+
+            $('#submitExam').click(async function () {
+                var file = $('#studentFileExam').prop('files')[0];
+                var examId = '@Model.ExamStudent?.ExamId';
+                if (file == null) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Please choose file to submit!',
+                    });
+                    return;
+                }
+                const confirm = await Swal.fire({
+                    title: "Are you sure?",
+                    text: "Do you want to submit this exam?",
+                    icon: "warning",
+                    buttons: true,
+                    dangerMode: true,
+                    confirmButtonText: 'Submit',
+                    cancelButtonText: 'Cancel',
+                    showCancelButton: true,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                });
+                if (confirm.isConfirmed) {
+                    var formData = new FormData();
+                    formData.append('files', file);
+                    formData.append('examId', examId);
+                    $('#loading').show();
+                    $('#submitExam').prop('disabled', true);
+                    const result = await fetch('https://localhost:44333/api/exam/submitexam', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer @accessToken`
+                        },
+                        body: formData
+                    });
+                    const response = await result.json();
+                    $('#loading').hide();
+                    $('#submitExam').prop('disabled', false);
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: response.message,
+                        }).then((value) => {
+                            location.reload();
+                        });
+                    }
+                    else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: response.message,
+                        });
+                    }
+                }
+            });
+
+
+            $('#viewMarkLog').click(function () {
+                var logs = $(this).data('value');
+                var tableHTML = '<table>';
+                tableHTML += '<tr>';
+                Object.keys(logs[0]).forEach(function (key) {
+                    tableHTML += '<th>' + key + '</th>';
+                });
+                tableHTML += '</tr>';
+                logs.forEach(function (log) {
+                    tableHTML += '<tr>';
+                    Object.values(log).forEach(function (value) {
+                        tableHTML += '<td>' + (typeof value === 'object' ? JSON.stringify(value) : value) + '</td>';
+                    });
+                    tableHTML += '</tr>';
+                });
+                tableHTML += '</table>';
+                
+                Swal.fire({
+                    title: 'Mark Log',
+                    html: tableHTML,
+                    width: 'auto',
+                });
+            });
+        });
+    </script>
+}

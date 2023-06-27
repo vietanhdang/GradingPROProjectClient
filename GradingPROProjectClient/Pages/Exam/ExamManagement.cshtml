@@ -1,0 +1,185 @@
+﻿@page
+@model GradingPROProjectClient.Pages.Exam.ExamManagementModel
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    ViewData["Title"] = "Exam Management";
+    var accessToken = HttpContextAccessor?.HttpContext?.Items["AccessToken"] as string;
+}
+<head>
+    <style>
+        .card-text-custom {
+            margin-bottom: 4px !important;
+        }
+
+        .fa-regular {
+            margin-right: 4px !important;
+        }
+    </style>
+</head>
+<a class="btn btn-primary" asp-page="/Exam/ExamManagementDetail" asp-route-mode="add"><i class="fas fa-plus"></i> Add Exam</a>
+@if (Model.Exams != null)
+{
+    <table class="table table-bordered table-custom">
+        <thead>
+            <tr>
+                <th>Exam Id</th>
+                <th>Exam Code</th>
+                <th>Exam Name</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Exam Status</th>
+                <th>Show Score</th>
+                <th class="text-center">Password</th>
+                <th class="text-center">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var exam in Model.Exams)
+            {
+                <tr data-id="@exam.ExamId">
+                    <td>@exam.ExamId</td>
+                    <td>@exam.ExamCode</td>
+                    <td>@exam.ExamName</td>
+                    <td>@exam.StartTime?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                    <td>@exam.EndTime?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                    <td>
+                        @await Html.PartialAsync("_ExamStatus", new Tuple<int, DateTime?, DateTime?>(exam.Status, exam.StartTime, exam.EndTime))
+                    </td>
+                    <td class="text-center"> <input disabled="true" name="isShowScore" class="form-check-input" type="checkbox" checked="@(exam.IsShowScore)"></td>
+                    <td class="text-center"> <input disabled="true" class="form-check-input" type="checkbox" checked="@(!string.IsNullOrEmpty(exam.Password))"></td>
+                    <td class="text-center">
+                        <div class="dropdown">
+                            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Action
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" asp-area="" asp-page="/Exam/ExamManagementDetail" asp-route-examId="@exam.ExamId">Detail</a>
+                                <a class="dropdown-item" asp-area="" asp-page="/Exam/ExamManagementDetail" asp-route-examId="@exam.ExamId" asp-route-mode="edit">Edit</a>
+                                <a class="dropdown-item" href="javascript:void(0)" name="quickSetPassword" onclick="QuickSetShowHideScore(@exam.ExamId, '@exam.IsShowScore')">@(exam.IsShowScore ? "Hide Score" : "Show Score")</a>
+                                <a class="dropdown-item" href="javascript:void(0)" onclick="QuickSetPassword(@exam.ExamId)">@(string.IsNullOrEmpty(exam.Password) ? "Set Password" : "Change password")</a>
+                                @if (!exam.IsStudentTakeExam)
+                                {
+                                    <a class="dropdown-item" href="javascript:void(0)" onclick="DeleteExam(@exam.ExamId)">Delete</a>
+                                }
+                                else
+                                {
+                                    <a class="dropdown-item" asp-area="" asp-page="/Exam/ExamManagementResult" asp-route-examId="@exam.ExamId">View Result</a>
+                                }
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@section Scripts{
+    <script>
+        async function DeleteExam(examId) {
+            if (!examId) return;
+            const confirm = await Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            });
+            if (confirm) {
+                const result = await fetch(`https://localhost:44333/api/exam/DeleteExam?examId=${examId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer @accessToken`
+                    },
+                });
+                const response = await result.json();
+                if (response.success) {
+                    Swal.fire(
+                        'Deleted!',
+                        'Your exam has been deleted.',
+                        'success'
+                    ).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: response.message
+                    })
+                }
+            }
+        }
+        async function QuickSetPassword(examId) {
+            await Swal.fire({
+                title: 'Set Password',
+                input: 'password',
+                inputLabel: 'Password',
+                inputPlaceholder: 'Enter password',
+                preConfirm: async (password) => {
+                    const data = {
+                        examId: examId,
+                        password: password
+                    }
+                    const result = await fetch(`https://localhost:44333/api/exam/ChangeExamPassword`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer @accessToken`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    const response = await result.json();
+                    if (response.success) {
+                        Swal.fire(
+                            'Success!',
+                            'Your password has been changed.',
+                            'success'
+                        ).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: response.message
+                        })
+                    }
+                }
+            })
+        }
+        async function QuickSetShowHideScore(examId, isShowScore) {
+            const data = {
+                examId: examId,
+                isShowScore: (isShowScore.toLowerCase() === 'false')
+            };
+            const result = await fetch(`https://localhost:44333/api/exam/ChangeShowHideScore`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer @accessToken`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            const response = await result.json();
+            if (response.success) {
+                const tr = $(`tr[data-id=${examId}]`);
+                if(tr.length === 0) return;
+                const checkbox = tr.find('input[name=isShowScore]');
+                if(checkbox.length === 0) return;
+                checkbox.prop('checked', !checkbox.prop('checked'));
+                const a = tr.find('a[name=quickSetPassword]');
+                if(a.length === 0) return;
+                a.text(data.isShowScore ? 'Hide Score' : 'Show Score');
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: response.message
+                });
+            }
+        }
+
+    </script>
+}

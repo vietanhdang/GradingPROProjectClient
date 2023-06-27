@@ -1,0 +1,188 @@
+﻿@page
+@model GradingPROProjectClient.Pages.Exam.IndexModel
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var accessToken = HttpContextAccessor?.HttpContext?.Items["AccessToken"] as string;
+    ViewData["Title"] = "Exams";
+}
+<head>
+    <style>
+        .card-text-custom {
+            margin-bottom: 4px !important;
+        }
+
+        .fa-regular {
+            margin-right: 4px !important;
+        }
+
+        .badge{
+            display: flex;
+            color: #0078d4;
+            margin-left: 89%;
+            margin-top: -25px;
+            background: white;
+            align-items: center;
+            justify-content: center;
+            box-shadow: gray 2px 1px 5px;
+            padding: 0.35em 0.65em;
+            font-size: .75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }
+
+        .card{
+            border-radius: 1rem;
+            height: 100%
+        }
+
+        .card-body{
+            padding: 1.25rem;
+        }
+        .card-title{
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+    </style>
+</head>
+
+<button type="button" class="btn btn-primary mb-3" id="joinExam">
+    Join Exam
+</button>
+@if (Model.ExamStudents != null)
+{
+    <div class="row">
+        @foreach (var exam in Model.ExamStudents)
+        {
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title u-text-3">@exam.ExamName</h5>
+                        <p class="card-text-custom u-text-3">Code: @exam.ExamCode</p>
+                        <p class="card-text-custom fw-light"><i class="fa-regular fa-clock"></i><span>Start: @exam.ExamStartTime?.ToString("dd/MM/yyyy HH:mm:ss")</span></p>
+                        <p class="card-text-custom fw-light"><i class="fa-regular fa-clock"></i><span>End: @exam.ExamEndTime?.ToString("dd/MM/yyyy HH:mm:ss")</span></p>
+                        <p class="card-text-custom fw-light">
+                            @await Html.PartialAsync("_ExamStatus", new Tuple<int, DateTime?, DateTime?>(exam.ExamStatus, exam.ExamStartTime, exam.ExamEndTime))
+                        </p>
+                        <p class="card-text-custom fw-light">
+                            @await Html.PartialAsync("_ExamStudentStatus", new Tuple<int, DateTime?, DateTime?>(exam.Status, exam.StartTime, exam.SubmitedTime))
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <div>
+                            @if (exam.Status == 0)
+                            {
+                                <a class="btn btn-primary btn-sm mt-2" data-examId="@exam.ExamId" id="startExam">Start Exam</a>
+                            }
+                            else if (exam.Status == 1)
+                            {
+                                <a class="btn btn-primary btn-sm mt-2" asp-area="" asp-page="/Exam/ExamDetail" asp-route-examDetailId="@exam.ExamId">Continue Exam</a>
+                            }
+                            else if (exam.Status == 2)
+                            {
+                                <a class="btn btn-success btn-sm mt-2" asp-area="" asp-page="/Exam/ExamDetail" asp-route-examDetailId="@exam.ExamId">View result</a>
+                            }
+                            @*<span class="badge">New</span>*@
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+@section Scripts{
+    <script>
+        $("#joinExam").click(async function () {
+            await Swal.fire({
+                title: 'Join Exam',
+                html:
+                    '<input id="examCode" class="swal2-input" placeholder="Exam Code">' +
+                    '<input id="password" class="swal2-input" placeholder="Exam Password">',
+                focusConfirm: true,
+                preConfirm: async () => {
+                    const examCode = $('#examCode').val()
+                    const password = $('#password').val()
+                    if (!examCode) {
+                        Swal.showValidationMessage(
+                            `Exam code is required!`
+                        )
+                        $('#examCode').focus()
+                    }else{
+                        const data = {
+                            examCode: examCode,
+                            password: password
+                        }
+                        const result = await fetch('https://localhost:44333/api/Exam/JoinExam', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer @accessToken`
+                            },
+                            body: JSON.stringify(data)
+                        });
+                        const response = await result.json();
+                        if (response.success) {
+                            window.location.href = "/Exam/Index";
+                        }
+                        else {
+                            Swal.showValidationMessage(
+                                `${response.message}`
+                            )
+                        }
+                    }
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Join',
+                cancelButtonText: 'Cancel',
+                showLoaderOnConfirm: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            })
+        });
+
+        $('#startExam').click(async function () {
+            var examId = $(this).data('examid');
+            const confirm = await Swal.fire({
+                title: "Are you sure?",
+                text: "Once you start the exam, you will not be able to return to the exam list!",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+                showCancelButton: true,
+                confirmButtonText: 'Start',
+                cancelButtonText: 'Cancel',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            });
+            if(confirm.isConfirmed){
+                const result = await fetch('https://localhost:44333/api/exam/startexam', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer @accessToken`
+                    },
+                    body: examId
+                });
+                const response = await result.json();
+                if (response.success) {
+                    window.location.href = "/Exam/ExamDetail?examDetailId=" + examId;
+                }
+                else {
+                    Swal.fire({
+                        title: "Error!",
+                        text: response.message,
+                        icon: "error",
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    });
+                }
+            }
+        });
+    </script>
+}

@@ -1,0 +1,49 @@
+﻿@page
+@model GradingPROProjectClient.Pages.Exam.ExamManagementResultModel
+@{
+    ViewData["Title"] = "Exam Management Result";
+}
+
+<h1 class="text-center u-text-4 mb-2">Exam Name: @Model.Exam.ExamName</h1>
+<h3 class="text-center u-text-3 mb-3">Exam Code: @Model.Exam.ExamCode</h3>
+@if (Model.Exam.StartTime != null && Model.Exam.EndTime != null)
+{
+    <h5 class="text-center u-text-3 mb-3">Open: @Model.Exam.StartTime?.ToString("dd/MM/yyyy HH:mm:ss") - Close: @Model.Exam.EndTime?.ToString("dd/MM/yyyy HH:mm:ss")</h5>
+}
+<p class="text-center u-text-3">
+    @await Html.PartialAsync("_ExamStatus", new Tuple<int, DateTime?, DateTime?>(Model.Exam.Status, Model.Exam.StartTime, Model.Exam.EndTime))
+</p>
+
+<table class="table table-bordered table-custom">
+    <thead>
+        <tr>
+            <th class="text-end">Student Id</th>
+            <th>Student Code</th>
+            <th>Student Name</th>
+            <th class="text-center">Start Time</th>
+            <th class="text-center">Submited Time</th>
+            <th class="text-center">Status</th>
+            <th class="text-end">Number of submissions</th>
+            <th class="text-end">Score</th>
+            
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var exam in Model.Exam.ExamStudents)
+        {
+            <tr>
+                <td class="text-end">@exam.StudentId</td>
+                <td>@exam.StudentCode</td>
+                <td>@exam.StudentName</td>
+                <td class="text-center">@exam.StartTime?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                <td class="text-center">@exam.SubmitedTime?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                <td class="text-center">
+                    @await Html.PartialAsync("_ExamStudentStatus", new Tuple<int, DateTime?, DateTime?>(exam.Status, exam.StartTime, exam.SubmitedTime))
+                </td>
+                <td class="text-end">@exam.CountTimeSubmit</td>
+                <td class="text-end">@exam.Score</td>
+               
+            </tr>
+        }
+    </tbody>
+</table>

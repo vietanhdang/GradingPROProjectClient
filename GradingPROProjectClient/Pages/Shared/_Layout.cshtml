@@ -1,0 +1,118 @@
+﻿@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var accessToken = HttpContextAccessor?.HttpContext?.Items["AccessToken"] as string;
+    ViewData["Title"] = "Exam Detail";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Grading System</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    @* <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" /> *@
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.css" />
+    <link rel="stylesheet" href="~/GradingPROProjectClient.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-page="/Index">Grading System</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                        </li>
+                        <partial name="_UserPartial" />
+                    </ul>
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        @* <div class="container">
+            &copy; 2023 ANHDVHE151359 - Grading System - <a asp-area="" asp-page="/Privacy">Privacy</a>
+        </div> *@
+         <div class="container">
+            &copy; 2023 ANHDVHE151359 - Grading System
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @* <script src="~/lib/sweetalert/sweetalert.min.js"></script> *@
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        $(document).ready(function () {
+            $('.table-custom').DataTable({
+                "paging": true,
+                "ordering": true,
+                "info": true,
+                "lengthChange": false,
+                "pageLength": 10,
+                "searching": true,
+                "order": [[0, 'desc']],
+                "language": {
+                    "search": "Search"
+                }
+            });
+            $('.downloadMaterial').click(async function () {
+                var downloadLink = $(this).data('link');
+                const result = await fetch(`https://localhost:44333/api/exam/downloadfile?fileName=${downloadLink}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer @accessToken`
+                    },
+                });
+                if (result.status === 401) {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'You are not authorized!',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                if (result.headers && result.headers.get('Content-Type') && result.headers.get('Content-Type').includes('application/json')) {
+                    const response = await result.json();
+                    Swal.fire({
+                        title: 'Error!',
+                        text: response.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    const resultBlob = await result.blob();
+                    const url = window.URL.createObjectURL(resultBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', downloadLink.split('\\').pop());
+                    document.body.appendChild(link);
+                    link.click();
+                    link.parentNode.removeChild(link);
+                }
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
